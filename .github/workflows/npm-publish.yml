@@ -1,0 +1,62 @@
+name: npm publish
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  check-if-tag:
+    runs-on: ubuntu-latest
+    steps:
+     - if: ${{ github.ref_type != 'tag' }}
+       run: echo "No tag specified, exiting job."
+
+  build:
+    runs-on: ubuntu-latest
+
+    if: ${{ github.ref_type == 'tag' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Set up node and add the registry url
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      # Install
+      - name: Install
+        if: github.event_name == 'workflow_dispatch'
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npx playwright install chromium
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libatk-bridge2.0-0 libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxfixes3 libxkbcommon0 libasound2t64
+
+      # Test
+      - name: Run tests
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run test
+
+      # Publish to npm
+      - name: Publish npm package (prerelease)
+        if: ${{ github.ref_type == 'tag' && contains(github.ref_name, 'beta') }}
+        run: echo "IS BETA RELEASE"
+        # run: npm publish --access public --tag pre
+        # env:
+          # NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Publish npm package (regular)
+        if: ${{ github.ref_type == 'tag' && !contains(github.ref_name, 'beta') }}
+        run: echo "IS REGULAR RELEASE"
+        # run: npm publish --access public
+        # env:
+          # NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
