@@ -7,18 +7,15 @@ on:
       - '*'
 
 jobs:
-  check-if-tag:
-    runs-on: ubuntu-latest
-    steps:
-     - if: ${{ github.ref_type != 'tag' }}
-       run: echo "No tag specified, exiting job."
-
   build:
     runs-on: ubuntu-latest
 
-    if: ${{ github.ref_type == 'tag' }}
-
     steps:
+      - if: ${{ github.ref_type != 'tag' }}
+        run: |
+          echo "No tag specified, exiting job."
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@v5
 
